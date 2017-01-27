@@ -1,0 +1,28 @@
+{
+  "description":"There are eleven errors in this passage.
+                 To edit a word, click on it and re-type it.",
+  "passage":"In 1914, Ernest Shackleton set {+off-of|3015}
+            on an exploration across the {+Antarctic.-antarctic.|508} In 1915, his ship,
+            Endurance, became trapped in the ice, and {+its-it's|3014} crew was stuck. Ten
+            months later, {+their-there|3017} ship sank, and {+Shackleton's-Shackletons|412}
+            crew was forced to live on {+an-a|3024} iceberg. They reached Elephant Island in
+            {+April-april|6} of 1916 using three lifeboats.\n<br/><br/>\nShackleton promised
+            to {+find-found|419} help. In a small boat with five crew members, he spent 16
+            days crossing 800 miles of ocean. The remaining men were {+then-than|3016}
+            rescued {+in-on|365} August of 1916. Amazingly, Shackleton did not
+            {+lose-loose|270} anyone on the trip.",
+  "standard":{
+    "name":"CCSS Grade 4 Summative Assessments",
+    "uid":"sCZVE3keOba3HuBq5v3l1g"
+  },
+  "standard_level":{
+    "name":"Beta - Benchmark Assessments ",
+    "uid":"dgTV8XPxrOYJGofYt10__g"
+  },
+  "title":"Shackleton Returns from the Antarctic",
+"topicCategory":{
+  "name":"Summative Assessments",
+  "uid":"XSx6hcLxlSf1WKaJFWgsNA"
+  },
+  "underlineErrorsInProofreader":false
+}
