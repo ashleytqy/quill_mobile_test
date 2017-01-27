@@ -43,6 +43,13 @@ function parseString(str, isCorrect) {
 }
 
 
+function parseIndex(str) {
+  if ((str.indexOf("+") || str.indexOf("-") || str.indexOf("{") || str.indexOf("}") || str.indexOf("|")) < 0)
+    return str;
+  return str.replace(/\|(.*)\}/).pop();
+}
+
+
 /*
 Comparing Diffs:
 returns an array of objects
@@ -80,7 +87,7 @@ function compareChangedWords(user, exp) {
   })
 
   let ans = JsDiff.diffArrays(userArray, expArray);
-  let implementedChanges = [];
+  let implementedChanges = []; //a pair of added and removed values
   let unimplementedChanges = [];
   let unnecessaryChanges = [];
 
@@ -103,10 +110,34 @@ function compareChangedWords(user, exp) {
     }
   }//end for loop
 
+  let pairArray = [];
+  for (let i = 0; i < implementedChanges.length - 1; i++) {
+    //make sure every 'removed' is followed by an 'added'
+    if (implementedChanges[i].removed === true && implementedChanges[i+1].added === true) {
+      let pair = {
+                  'removed': implementedChanges[i].value,
+                  'added': implementedChanges[i+1].value
+                }
+      pairArray.push(pair);
+    }
+  }
+
+
+  let unimplementedArray = [];
+  for (let i = 0; i < unimplementedChanges.length - 1; i++) {
+    //make sure every 'removed' is followed by an 'added'
+    if (unimplementedChanges[i].removed === true && unimplementedChanges[i+1].added === true) {
+      let pair = {
+                  'toRemove': unimplementedChanges[i].value,
+                  'toAdd': unimplementedChanges[i+1].value
+                }
+      unimplementedArray.push(pair);
+    }
+  }
   return {
-          'implemented_changes': implementedChanges,
-          'unimplemented_changes': unimplementedChanges,
-          'unncessary_changes': unnecessaryChanges
+          'implemented_changes': pairArray,
+          'unimplemented_changes': unimplementedArray,
+          'unnecessary_changes': unnecessaryChanges
         }
 }
 
@@ -118,23 +149,9 @@ module.exports = {
   getDiffWords: getDiffWords,
   compareChangedWords: compareChangedWords
 }
-/*
-Tests
-*/
-//note: changes in whitespace doesn't make a difference! which is cool.
-var originalHTML = "In 1914, Ernest Shackleton set {+off-of|3015} on an exploration across the {+Antarctic.-antarctic.|508} In 1915, his ship, Endurance, became trapped in the ice, and {+its-it's|3014} crew was stuck. Ten months later, {+their-there|3017} ship sank, and {+Shackleton's-Shackletons|412} crew was forced to live on {+an-a|3024} iceberg. They reached Elephant Island in {+April-april|6} of 1916 using three lifeboats.\n<br/><br/>\nShackleton promised to {+find-found|419} help. In a small boat with five crew members, he spent 16 days crossing 800 miles of ocean. The remaining men were {+then-than|3016} rescued {+in-on|365} August of 1916. Amazingly, Shackleton did not {+lose-loose|270} anyone on the trip.";
-var HTMLwError = "Shackleton set on an exploration across the {+Antarctic.-antarctic.|508} In    1915,           his ship, Endurance, became trapped in the ice, and {+its-it's|3014} crew was stuck. Ten months later, {+their-there|3017} ship sank, and {+Shackleton's-Shackletons|412} crew was forced to live on {+an-a|3024} iceberg. They reached Elephant Island in {+April-april|6} of 1916 using three lifeboats.\n<br/><br/>\nShackleton promised to {+find-found|419} help. In a small boat with five crew members, he spent 16 days crossing 800 miles of ocean. The remaining men were {+then-than|3016} rescued {+in-on|365} August of 1916. Amazingly, Shackleton did not {+lose-loose|270} anyone on the trip.";
-var fakeUser = htmlToPassage(HTMLwError, true);
-var rightP = htmlToPassage(originalHTML, true);
-var wrongP = htmlToPassage(originalHTML, false);
 
-fakeUserWords = getDiffWords(fakeUser, wrongP);
-expectedDiff = getDiffWords(rightP, wrongP);
 
-var changed = compareChangedWords(fakeUserWords, expectedDiff);
-// changed.implemented_changes.forEach(function(word) {
-//   console.log(word.value);
-// })
+
 
 /*
 review student's passage & highlight the changes they made
@@ -146,7 +163,7 @@ function reviewStudentInput(passage, changed){
   //since implemented_changes guarantees it comes in pairs
   // changed.implemented_changes.forEach(function(word) {
   //   console.log(word.value);
-  // });
+  // });n
   //
   // console.log("\nUNIMPLEMENTED");
   // changed.unimplemented_changes.forEach(function(word) {
@@ -157,3 +174,12 @@ function reviewStudentInput(passage, changed){
 //should is be: let's see what you got wrong,
 //then what you got right
 //or go chronologically?
+//sequence is important for getDiffWords: wrong_sentence first then, right_sentence
+let right_sentence = 'Amazingly, Shackleton did not lose anyone on the trip.';
+let wrong_sentence = 'Amazingly, Shackleton did not loose anyone on the trip.';
+let diff_expected = getDiffWords(wrong_sentence, right_sentence);
+
+let user_input_wrong = 'Amazingly, Shackleton did not loose iiui anyone on the trip.'
+let diff_actual = getDiffWords(wrong_sentence, user_input_wrong);
+
+console.log(compareChangedWords(diff_actual, diff_expected));
