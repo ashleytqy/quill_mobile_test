@@ -59,6 +59,12 @@ Maps the right word to the concept code
 */
 function storeConceptCode(word, code){
   word = word.match(/\+(.*)\-/).pop();
+  //if the last character is not a letter
+  //ie, if the word ends in . , ? !
+  //remove that character, because JSDiff does not take them into consideration
+  if (!((65 <= word.charCodeAt(word.length - 1)) && (65 <= word.charCodeAt(word.length - 1)) <= 90)) {
+    word = word.substr(0, word.length - 1);
+  }
   wordToConceptCode[word] = code;
 };
 
@@ -235,6 +241,7 @@ let passage = "In 1914, Ernest Shackleton set {+off-of|3015}\
 
 student_input = htmlToPassage(passage, false);
 compareBySentences(student_input, passage);
+
 
 
 // function compare(user, rawHTML) {
