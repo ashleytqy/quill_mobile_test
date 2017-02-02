@@ -55,7 +55,7 @@ function parseString(str, isCorrect) {
 }
 
 /*
-Maps the right word to the concept code
+Maps and stores the right word to the concept code
 */
 function storeConceptCode(word, code){
   word = word.match(/\+(.*)\-/).pop();
@@ -86,9 +86,9 @@ function passageToSentences(passage) {
 
 
 /*
-Comparing Diffs:
-returns an array of objects
-where the objects are Words that differs from the expected sentences
+getDiffWords takes in two sentences and
+returns and an array of changedObjects
+i.e. words that are changed from the original sentences
 */
 function getDiffWords(expected, actual) {
   let array = JsDiff.diffWords(expected, actual);
@@ -103,10 +103,9 @@ function getDiffWords(expected, actual) {
 }
 
 /*
-get the diff words btn user & wrong
-get the diff word btn right & wrong
-compare those two
-output which ans is correc & wrong & unncessary
+compareChangedWords takes in two arrays of changedObjects
+and compares them to determine which words are
+correctly or wrongly implemented, or unncessary
 */
 function compareChangedWords(user, exp) {
   //inputs [user] and [exp] are arrays
@@ -181,8 +180,8 @@ function compareChangedWords(user, exp) {
 }
 
 /*
-review student's passage & highlight the changes they made
-by sentences
+compareBySentences takes in userInput and rawHTML (with specialStrings)
+and returns the changes made by the userInput
 */
 function compareBySentences(student, rawHTML) {
   let correct = htmlToPassage(rawHTML, true);
@@ -193,19 +192,8 @@ function compareBySentences(student, rawHTML) {
 
   let changes = {};
   for (let i in correct) {
-    console.log("\n\n\n===========");
-    console.log("SENTENCE " + i);
-    console.log("===========");
     let diff_expected = getDiffWords(correct[i], wrong[i]);
     let diff_actual = getDiffWords(user[i], wrong[i]);
-    console.log(compareChangedWords(diff_actual, diff_expected));
-    console.log("\nCORRECT SENTENCE")
-    console.log("++++++++++++++++");
-    console.log(correct[i]);
-
-    console.log("\nUSER'S SENTENCE")
-    console.log("++++++++++++++++++");
-    console.log(user[i])
     changes[i] = compareChangedWords(diff_actual, diff_expected);
   }
   return changes;
@@ -240,7 +228,7 @@ let passage = "In 1914, Ernest Shackleton set {+off-of|3015}\
           {+lose-loose|270} anyone on the trip.";
 
 student_input = htmlToPassage(passage, false);
-compareBySentences(student_input, passage);
+console.log(compareBySentences(student_input, passage));
 
 
 
