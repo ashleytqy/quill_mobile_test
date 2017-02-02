@@ -1,4 +1,5 @@
 const JsDiff = require('diff');
+const wordToConceptCode = {};
 
 /*
 htmlToPassage takes in the raw html passage and returns
@@ -38,18 +39,28 @@ function getSpecialString(remainingString) {
 /*
 parseString takes in a specialString
 and returns the right / wrong version of the string
-as well as the code
+as well as the concept code
 */
 function parseString(str, isCorrect) {
-  if ((str.indexOf("+") || str.indexOf("-") || str.indexOf("{") || str.indexOf("}") || str.indexOf("|")) < 0)
+  if ((str.indexOf("+") || str.indexOf("-") || str.indexOf("{") || str.indexOf("}") || str.indexOf("|")) < 0) {
     return {"value": str, "code": null};
+  }
 
   str = str.replace(/^\s+|\s+$/g,'');
   value = isCorrect ? str.match(/\+(.*)\-/).pop() : str.match(/\-(.*)\|/).pop();
 
   let code = str.match(/\|(.*)/)[1];
+  storeConceptCode(str, code);
   return {"value": value, "code": code};
 }
+
+/*
+Maps the right word to the concept code
+*/
+function storeConceptCode(word, code){
+  word = word.match(/\+(.*)\-/).pop();
+  wordToConceptCode[word] = code;
+};
 
 /*
 passageToSentences takes in a passage
@@ -136,7 +147,8 @@ function compareChangedWords(user, exp) {
     if (implementedChanges[i].removed === true && implementedChanges[i+1].added === true) {
       let pair = {
                   'removed': implementedChanges[i].value,
-                  'added': implementedChanges[i+1].value
+                  'added': implementedChanges[i+1].value,
+                  'concept': parseInt(wordToConceptCode[implementedChanges[i].value])
                 }
       implementedArray.push(pair);
     }
@@ -149,7 +161,8 @@ function compareChangedWords(user, exp) {
     if (unimplementedChanges[i].removed === true && unimplementedChanges[i+1].added === true) {
       let pair = {
                   'to_remove': unimplementedChanges[i].value,
-                  'to_add': unimplementedChanges[i+1].value
+                  'to_add': unimplementedChanges[i+1].value,
+                  'concept': parseInt(wordToConceptCode[unimplementedChanges[i].value])
                 }
       unimplementedArray.push(pair);
     }
@@ -161,16 +174,9 @@ function compareChangedWords(user, exp) {
         }
 }
 
-function compare(user, rawHTML) {
-  let correct = htmlToPassage(rawHTML, true);
-  let wrong = htmlToPassage(rawHTML, false);
-  let diff_expected = getDiffWords(correct, wrong);
-  let diff_actual = getDiffWords(user, wrong);
-  return compareChangedWords(diff_actual, diff_expected);
-}
-
 /*
 review student's passage & highlight the changes they made
+by sentences
 */
 function compareBySentences(student, rawHTML) {
   let correct = htmlToPassage(rawHTML, true);
@@ -181,11 +187,19 @@ function compareBySentences(student, rawHTML) {
 
   let changes = {};
   for (let i in correct) {
-    console.log("\nSENTENCE " + i);
-    console.log("============");
+    console.log("\n\n\n===========");
+    console.log("SENTENCE " + i);
+    console.log("===========");
     let diff_expected = getDiffWords(correct[i], wrong[i]);
     let diff_actual = getDiffWords(user[i], wrong[i]);
     console.log(compareChangedWords(diff_actual, diff_expected));
+    console.log("\nCORRECT SENTENCE")
+    console.log("++++++++++++++++");
+    console.log(correct[i]);
+
+    console.log("\nUSER'S SENTENCE")
+    console.log("++++++++++++++++++");
+    console.log(user[i])
     changes[i] = compareChangedWords(diff_actual, diff_expected);
   }
   return changes;
@@ -198,7 +212,6 @@ module.exports = {
   getDiffWords: getDiffWords,
   compareChangedWords: compareChangedWords
 }
-
 
 
 
@@ -220,5 +233,14 @@ let passage = "In 1914, Ernest Shackleton set {+off-of|3015}\
           rescued {+in-on|365} August of 1916. Amazingly, Shackleton did not\
           {+lose-loose|270} anyone on the trip.";
 
-student_input = htmlToPassage(passage, true);
+student_input = htmlToPassage(passage, false);
 compareBySentences(student_input, passage);
+
+
+// function compare(user, rawHTML) {
+//   let correct = htmlToPassage(rawHTML, true);
+//   let wrong = htmlToPassage(rawHTML, false);
+//   let diff_expected = getDiffWords(correct, wrong);
+//   let diff_actual = getDiffWords(user, wrong);
+//   return compareChangedWords(diff_actual, diff_expected);
+// }
