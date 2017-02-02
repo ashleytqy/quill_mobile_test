@@ -11,40 +11,46 @@ function htmlToPassage(raw, isCorrect) {
     if(raw[i] != '{') {
       convertedPassage += raw[i];
     } else {
-      let string = getString(raw.substring(i)).ans;
-      convertedPassage += parseString(string, isCorrect);
+      let string = getSpecialString(raw.substring(i)).specialString;
+      convertedPassage += parseString(string, isCorrect).value;
       //change value of i to skip to the end of the parsed string
-      i += getString(raw.substring(i)).charIndex;
+      i += getSpecialString(raw.substring(i)).charIndex;
     }
   }
   return convertedPassage;
 }
 
-
-function getString(remainingString) {
-  let ans = '';
+/*
+getSpecialString takes in a string and returns an object
+with the the specialString {+add-remove|508}
+and the lastIndex of the specialString
+*/
+function getSpecialString(remainingString) {
+  let specialString = '';
   charIndex = 1;
   while (remainingString[charIndex] != '}' && charIndex < remainingString.length) {
-    ans += remainingString[charIndex];
+    specialString += remainingString[charIndex];
     charIndex++;
   }
-  return {ans, charIndex};
+  return {specialString, charIndex};
 }
 
+/*
+parseString takes in a specialString
+and returns the right / wrong version of the string
+as well as the code
+*/
 function parseString(str, isCorrect) {
   if ((str.indexOf("+") || str.indexOf("-") || str.indexOf("{") || str.indexOf("}") || str.indexOf("|")) < 0)
-    return str;
+    return {"value": str, "code": null};
 
   str = str.replace(/^\s+|\s+$/g,'');
-  return isCorrect ? str.match(/\+(.*)\-/).pop() : str.match(/\-(.*)\|/).pop();
+  value = isCorrect ? str.match(/\+(.*)\-/).pop() : str.match(/\-(.*)\|/).pop();
+
+  let code = str.match(/\|(.*)/)[1];
+  return {"value": value, "code": code};
 }
 
-
-function parseIndex(str) {
-  if ((str.indexOf("+") || str.indexOf("-") || str.indexOf("{") || str.indexOf("}") || str.indexOf("|")) < 0)
-    return str;
-  return str.replace(/\|(.*)\}/).pop();
-}
 
 function passageToSentences(passage) {
   //TO-DO >> problem:: period is missing from the sentences!
@@ -160,9 +166,31 @@ function compare(user, rawHTML) {
   return compareChangedWords(diff_actual, diff_expected);
 }
 
+/*
+review student's passage & highlight the changes they made
+*/
+function compareBySentences(student, rawHTML) {
+  let correct = htmlToPassage(rawHTML, true);
+  let wrong = htmlToPassage(rawHTML, false);
+  correct = passageToSentences(correct);
+  wrong = passageToSentences(wrong);
+  user = passageToSentences(student);
+
+  let changes = {};
+  for (let i in correct) {
+    console.log("\nSENTENCE " + i);
+    console.log("============");
+    let diff_expected = getDiffWords(correct[i], wrong[i]);
+    let diff_actual = getDiffWords(user[i], wrong[i]);
+    console.log(compareChangedWords(diff_actual, diff_expected));
+    changes[i] = compareChangedWords(diff_actual, diff_expected);
+  }
+  return changes;
+}
+
 module.exports = {
   htmlToPassage: htmlToPassage,
-  getString: getString,
+  getSpecialString: getSpecialString,
   parseString: parseString,
   getDiffWords: getDiffWords,
   compareChangedWords: compareChangedWords
@@ -190,32 +218,4 @@ let passage = "In 1914, Ernest Shackleton set {+off-of|3015}\
           {+lose-loose|270} anyone on the trip.";
 
 student_input = htmlToPassage(passage, true);
-// console.log(compare(student_input, passage));
-// console.log(compareChangedWords(diff_actual, diff_expected));
-// let s0 = passageToSentences(passage);
-// let s1 = passageToSentences(student_input);
-
 console.log(compareBySentences(student_input, passage));
-
-/*
-review student's passage & highlight the changes they made
-*/
-function compareBySentences(student, rawHTML) {
-  let correct = htmlToPassage(rawHTML, true);
-  let wrong = htmlToPassage(rawHTML, false);
-  correct = passageToSentences(correct);
-  wrong = passageToSentences(wrong);
-  user = passageToSentences(student);
-
-  let changes = {};
-  for (let i in correct) {
-    console.log("\nSENTENCE " + i);
-    console.log("============");
-    let diff_expected = getDiffWords(correct[i], wrong[i]);
-    let diff_actual = getDiffWords(user[i], wrong[i]);
-    console.log(compareChangedWords(diff_actual, diff_expected));
-    changes[i] = compareChangedWords(diff_actual, diff_expected);
-  }
-
-  return changes;
-}
