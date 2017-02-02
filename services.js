@@ -20,10 +20,7 @@ function htmlToPassage(raw, isCorrect) {
   return convertedPassage;
 }
 
-/*
-input: {+its-it's|3014} anyone on the trip....
-output: {+its-it's|3014} and the index of the last string
-*/
+
 function getString(remainingString) {
   let ans = '';
   charIndex = 1;
@@ -47,6 +44,18 @@ function parseIndex(str) {
   if ((str.indexOf("+") || str.indexOf("-") || str.indexOf("{") || str.indexOf("}") || str.indexOf("|")) < 0)
     return str;
   return str.replace(/\|(.*)\}/).pop();
+}
+
+function passageToSentences(passage) {
+  //TO-DO >> problem:: period is missing from the sentences!
+  let sentences = passage.split('.');
+  let indexedSentences  = {};
+  for (let i = 0; i < sentences.length; i++) {
+    if (sentences[i].length > 0) {
+      indexedSentences[i] = sentences[i];
+    }
+  }
+  return indexedSentences;
 }
 
 
@@ -95,7 +104,9 @@ function compareChangedWords(user, exp) {
     if ((ans[i].added === undefined && ans[i].removed === true)) {
       let changes = ans[i].value;
         changes.forEach(function(change) {
-        unnecessaryChanges.push(JSON.parse(change));
+        change = JSON.parse(change);
+        delete change["count"];
+        unnecessaryChanges.push(change);
       })
     } else if ((ans[i].added === true && ans[i].removed === undefined)) {
       let changes = ans[i].value;
@@ -128,8 +139,8 @@ function compareChangedWords(user, exp) {
     //make sure every 'removed' is followed by an 'added'
     if (unimplementedChanges[i].removed === true && unimplementedChanges[i+1].added === true) {
       let pair = {
-                  'toRemove': unimplementedChanges[i].value,
-                  'toAdd': unimplementedChanges[i+1].value
+                  'to_remove': unimplementedChanges[i].value,
+                  'to_add': unimplementedChanges[i+1].value
                 }
       unimplementedArray.push(pair);
     }
@@ -141,6 +152,13 @@ function compareChangedWords(user, exp) {
         }
 }
 
+function compare(user, rawHTML) {
+  let correct = htmlToPassage(rawHTML, true);
+  let wrong = htmlToPassage(rawHTML, false);
+  let diff_expected = getDiffWords(correct, wrong);
+  let diff_actual = getDiffWords(user, wrong);
+  return compareChangedWords(diff_actual, diff_expected);
+}
 
 module.exports = {
   htmlToPassage: htmlToPassage,
@@ -153,33 +171,51 @@ module.exports = {
 
 
 
+let right_sentence = 'Amazingly, Shackleton did not lose anyone on the trip.';
+let wrong_sentence = 'Amazingly, Shackleton did not loose anyone on the trips.';
+let diff_expected = getDiffWords(wrong_sentence, right_sentence);
+
+let user_input_wrong = 'Amazingly, Shackleton not lose EXTRA_WORD anyone on the trips.'
+let diff_actual = getDiffWords(wrong_sentence, user_input_wrong);
+
+let passage = "In 1914, Ernest Shackleton set {+off-of|3015}\
+          on an exploration across the {+Antarctic.-antarctic.|508} In 1915, his ship,\
+          Endurance, became trapped in the ice, and {+its-it's|3014} crew was stuck. Ten\
+          months later, {+their-there|3017} ship sank, and {+Shackleton's-Shackletons|412}\
+          crew was forced to live on {+an-a|3024} iceberg. They reached Elephant Island in\
+          {+April-april|6} of 1916 using three lifeboats.\n<br/><br/>\nShackleton promised\
+          to {+find-found|419} help. In a small boat with five crew members, he spent 16\
+          days crossing 800 miles of ocean. The remaining men were {+then-than|3016}\
+          rescued {+in-on|365} August of 1916. Amazingly, Shackleton did not\
+          {+lose-loose|270} anyone on the trip.";
+
+student_input = htmlToPassage(passage, true);
+// console.log(compare(student_input, passage));
+// console.log(compareChangedWords(diff_actual, diff_expected));
+// let s0 = passageToSentences(passage);
+// let s1 = passageToSentences(student_input);
+
+console.log(compareBySentences(student_input, passage));
+
 /*
 review student's passage & highlight the changes they made
 */
-function reviewStudentInput(passage, changed){
-  //go through each char in the passage and see if it matches
-  //the value of the array
-// JsDiff.diffLines(oldStr, newStr[, options])
-  //since implemented_changes guarantees it comes in pairs
-  // changed.implemented_changes.forEach(function(word) {
-  //   console.log(word.value);
-  // });n
-  //
-  // console.log("\nUNIMPLEMENTED");
-  // changed.unimplemented_changes.forEach(function(word) {
-  //   console.log(word.value);
-  // });
+function compareBySentences(student, rawHTML) {
+  let correct = htmlToPassage(rawHTML, true);
+  let wrong = htmlToPassage(rawHTML, false);
+  correct = passageToSentences(correct);
+  wrong = passageToSentences(wrong);
+  user = passageToSentences(student);
+
+  let changes = {};
+  for (let i in correct) {
+    console.log("\nSENTENCE " + i);
+    console.log("============");
+    let diff_expected = getDiffWords(correct[i], wrong[i]);
+    let diff_actual = getDiffWords(user[i], wrong[i]);
+    console.log(compareChangedWords(diff_actual, diff_expected));
+    changes[i] = compareChangedWords(diff_actual, diff_expected);
+  }
+
+  return changes;
 }
-
-//should is be: let's see what you got wrong,
-//then what you got right
-//or go chronologically?
-//sequence is important for getDiffWords: wrong_sentence first then, right_sentence
-let right_sentence = 'Amazingly, Shackleton did not lose anyone on the trip.';
-let wrong_sentence = 'Amazingly, Shackleton did not loose anyone on the trip.';
-let diff_expected = getDiffWords(wrong_sentence, right_sentence);
-
-let user_input_wrong = 'Amazingly, Shackleton did not loose iiui anyone on the trip.'
-let diff_actual = getDiffWords(wrong_sentence, user_input_wrong);
-
-console.log(compareChangedWords(diff_actual, diff_expected));

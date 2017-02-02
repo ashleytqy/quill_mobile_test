@@ -2,6 +2,7 @@ const assert = require('assert');
 const expect = require('expect');
 const tools = require('../services.js');
 
+
 describe('Parsing passages from JSON', function() {
   let passage = "Amazingly, Shackleton did not {+lose-loose|270} anyone on the trip.";
   let sentence_without_braces = "Amazingly, Shackleton did not lose anyone on the trip.";
@@ -29,7 +30,7 @@ describe('Parsing passages from JSON', function() {
 describe('Get string to be edited', function(){
   let braces = '{+lose-loose|270} anyone on the trip';
   let no_braces = 'lose anyone on the trip';
-  describe('#get sttring within braces', function(){
+  describe('#get string within braces', function(){
     it('should return the string after braces are stripped off', function() {
       expect(tools.getString(braces)).toInclude({ans: "+lose-loose|270"});
     });
