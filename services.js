@@ -51,14 +51,17 @@ function parseString(str, isCorrect) {
   return {"value": value, "code": code};
 }
 
-
+/*
+passageToSentences takes in a passage
+and returns and object with sentence numbers as keys
+and the sentences themselves as values
+*/
 function passageToSentences(passage) {
-  //TO-DO >> problem:: period is missing from the sentences!
   let sentences = passage.split('.');
   let indexedSentences  = {};
   for (let i = 0; i < sentences.length; i++) {
     if (sentences[i].length > 0) {
-      indexedSentences[i] = sentences[i];
+      indexedSentences[i] = sentences[i] + ".";
     }
   }
   return indexedSentences;
@@ -127,7 +130,7 @@ function compareChangedWords(user, exp) {
     }
   }//end for loop
 
-  let pairArray = [];
+  let implementedArray = [];
   for (let i = 0; i < implementedChanges.length - 1; i++) {
     //make sure every 'removed' is followed by an 'added'
     if (implementedChanges[i].removed === true && implementedChanges[i+1].added === true) {
@@ -135,7 +138,7 @@ function compareChangedWords(user, exp) {
                   'removed': implementedChanges[i].value,
                   'added': implementedChanges[i+1].value
                 }
-      pairArray.push(pair);
+      implementedArray.push(pair);
     }
   }
 
@@ -152,7 +155,7 @@ function compareChangedWords(user, exp) {
     }
   }
   return {
-          'implemented_changes': pairArray,
+          'implemented_changes': implementedArray,
           'unimplemented_changes': unimplementedArray,
           'unnecessary_changes': unnecessaryChanges
         }
@@ -218,4 +221,4 @@ let passage = "In 1914, Ernest Shackleton set {+off-of|3015}\
           {+lose-loose|270} anyone on the trip.";
 
 student_input = htmlToPassage(passage, true);
-console.log(compareBySentences(student_input, passage));
+compareBySentences(student_input, passage);
