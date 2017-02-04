@@ -46,8 +46,22 @@ function parseString(str, isCorrect) {
     return {"value": str, "code": null};
   }
 
-  str = str.replace(/^\s+|\s+$/g,'');
-  value = isCorrect ? str.match(/\+(.*)\-/).pop() : str.match(/\-(.*)\|/).pop();
+  //weird cases: {+Plantations.-plantations. / Plantations.|508}
+  //have to remove /Plantations.
+  if (str.indexOf('/') > -1) {
+    let toRemove = "/ " + str.match(/\+(.*)\-/)[1];
+    str = str.replace(toRemove, '');
+  }
+
+  //removing whitespace... necessary?
+  // str = str.replace(/^\s+|\s+$/g,'');
+  //if + comes before -
+  if (str.indexOf('+') < str.indexOf('-')){
+    value = isCorrect ? str.match(/\+(.*)\-/).pop() : str.match(/\-(.*)\|/).pop();
+  } else {
+    //if - comes before +
+    value = isCorrect ? str.match(/\-(.*)\+/).pop() : str.match(/\+(.*)\|/).pop();
+  }
 
   let code = str.match(/\|(.*)/)[1];
   storeConceptCode(str, code);
@@ -167,7 +181,7 @@ function compareChangedWords(user, exp) {
       let pair = {
                   'to_remove': unimplementedChanges[i].value,
                   'to_add': unimplementedChanges[i+1].value,
-                  'concept': parseInt(wordToConceptCode[unimplementedChanges[i].value])
+                  'concept': - parseInt(wordToConceptCode[unimplementedChanges[i].value])
                 }
       unimplementedArray.push(pair);
     }
@@ -207,28 +221,63 @@ module.exports = {
   compareChangedWords: compareChangedWords
 }
 
+function groupSameConceptWord(sentence){
+  const THRESHOLD = 10; //max 5 words apart between first and last word
 
+  let correct = htmlToPassage(sentence, true);
+  let wrong = htmlToPassage(sentence, false);
+  let diff_expected = getDiffWords(correct, wrong);
+  let diff_actual = getDiffWords(correct, wrong);
 
-let right_sentence = 'Amazingly, Shackleton did not lose anyone on the trip.';
-let wrong_sentence = 'Amazingly, Shackleton did not loose anyone on the trips.';
-let diff_expected = getDiffWords(wrong_sentence, right_sentence);
+  let group = [];
+  diff_actual.forEach(diff => {
+    if (diff.removed === true) {
+      //word: index ?  correct.search(word) // also rmb to add concept code ~~ !!
+      group.push(diff.value);
+    }
+  })
 
-let user_input_wrong = 'Amazingly, Shackleton not lose EXTRA_WORD anyone on the trips.'
-let diff_actual = getDiffWords(wrong_sentence, user_input_wrong);
+  let maxCount = 0;
+  let mergedWords = [];
+  for (let i = 0; i < group.length ; i++) {
+    const currentWordIndex = correct.search(group[i]);
 
-let passage = "In 1914, Ernest Shackleton set {+off-of|3015}\
-          on an exploration across the {+Antarctic.-antarctic.|508} In 1915, his ship,\
-          Endurance, became trapped in the ice, and {+its-it's|3014} crew was stuck. Ten\
-          months later, {+their-there|3017} ship sank, and {+Shackleton's-Shackletons|412}\
-          crew was forced to live on {+an-a|3024} iceberg. They reached Elephant Island in\
-          {+April-april|6} of 1916 using three lifeboats.\n<br/><br/>\nShackleton promised\
-          to {+find-found|419} help. In a small boat with five crew members, he spent 16\
-          days crossing 800 miles of ocean. The remaining men were {+then-than|3016}\
-          rescued {+in-on|365} August of 1916. Amazingly, Shackleton did not\
-          {+lose-loose|270} anyone on the trip.";
+    for (let remaining = i + 1; remaining < group.length; remaining++) {
+      const nextWordIndex = correct.search(group[remaining]);
+      //how many spaces between those words?
+      const newSentence = correct.substring(currentWordIndex, nextWordIndex + group[remaining].length);
+      const whitespaceCount = newSentence.split(" ").length - 1;
 
-student_input = htmlToPassage(passage, false);
-console.log(compareBySentences(student_input, passage));
+      if (whitespaceCount > THRESHOLD) {
+        break;
+      }
+
+      if (whitespaceCount <= THRESHOLD && whitespaceCount > maxCount) {
+        maxCount = whitespaceCount;
+        mergedWords = newSentence;
+      }
+    }
+  }
+  console.log(mergedWords);
+  return mergedWords;
+}
+
+let passage = "Inauguration Day is a celebration that marks the beginning of a president’s four-year term. <br/><br/>\n\nWhen the American Revolution ended in 1783, the Articles of Confederation were implemented to keep the thirteen states together. After winning independence from Great {+Britain,-Britain|3062} the states were suspicious of a powerful government. Yet, at the same time, it was clear that the Articles had failed to {+properly-proper|432} keep the thirteen states together and regulate taxation throughout the states. <br/><br/>\n \nFifty-five delegates attended the May 1787 Constitutional Convention in Philadelphia to revise the Articles and {+strengthen-strengthened|2032} the federal government. There were lengthy debates about how to revise the Articles, but many agreed it would be best to create {+an-a|3024} entirely new Constitution. Initially, many states {+felt-feel|477} this gave too much power to the federal government and they refused to ratify the Constitution. Although it took many months to ratify the Constitution, in the end, all thirteen colonies realized the importance of remaining unified. <br/><br/>\n \nGeorge Washington was the obvious choice for the first president of the {+United States of America.-united states of america.|508} He is the only president who was unanimously elected by all of the state representatives. Washington was sworn in on {+April 30, 1789-April 30 1789|509} as the first President. Washington chose to leave office after only two terms since he thought it was important for the United States to have a president rather {+than-then|272} a king. <br/><br/>";
+let sentence = "The Military Academy in {+West Point,-west point,|508} NY, the";
+let sentence2 = "first president of the {+United States of America.-united states of america.|508} He";
+let sentence3 = "they sound; they are paintings of a piece {+of land.-of lands.|3119} The land";
+
+groupSameConceptWord(sentence);
+groupSameConceptWord(sentence2);
+// student_input = htmlToPassage(passage, true);
+// const obj = compareBySentences(stuldent_input, passage);
+// for (var key in obj) {
+//   console.log("sentence #" + key);
+//   console.log(obj[key].implemented_changes);
+//   console.log(obj[key].unimplemented_changes);
+//   console.log(obj[key].unncessary_changes);
+//   console.log("\n\n")
+// }
 
 
 

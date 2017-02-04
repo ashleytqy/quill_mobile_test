@@ -176,8 +176,6 @@ describe('testing compareChangedWords >>', function() {
     let sentence_less = 'This is a.'; //vs. This are an cat.
     let diff_less = tools.getDiffWords(sentence_less, wrong_sentence);
 
-    console.log(diff_less);
-
     it('should return an object with more than 0 unnecessary_changes', function(){
       expect(tools.compareChangedWords(diff_less, diff_expected)
         .unnecessary_changes.length).toBeGreaterThan(0);
